@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulatore Prova Scritta Concorso Docenti</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .quiz-option:hover {
+            background-color: #374151; /* gray-700 */
+        }
+        .quiz-option input:checked + label {
+            background-color: #1d4ed8; /* blue-700 */
+            border-color: #3b82f6; /* blue-500 */
+            color: white;
+        }
+        /* Stile per la scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* gray-600 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* gray-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div id="app" class="w-full max-w-4xl mx-auto">
+
+        <!-- Schermata Iniziale -->
+        <div id="start-screen" class="text-center bg-gray-800 p-8 rounded-xl shadow-2xl">
+            <h1 class="text-3xl md:text-4xl font-bold text-white mb-4">Simulatore Prova Scritta</h1>
+            <p class="text-xl font-medium text-blue-400 mb-6">Concorso Docenti</p>
+            <div class="text-left max-w-2xl mx-auto space-y-4 text-gray-300 mb-8">
+                <p class="flex items-start"><span class="text-blue-400 mr-3 text-2xl">✓</span><span><strong>50 quesiti</strong> a risposta multipla da completare.</span></p>
+                <p class="flex items-start"><span class="text-blue-400 mr-3 text-2xl">✓</span><span><strong>100 minuti</strong> di tempo a disposizione.</span></p>
+                <p class="flex items-start"><span class="text-blue-400 mr-3 text-2xl">✓</span><span>Il punteggio minimo per superare la prova è <strong>70/100</strong>.</span></p>
+                <p class="flex items-start"><span class="text-blue-400 mr-3 text-2xl">✓</span><span>Naviga tra le domande e rivedi le tue risposte prima di terminare.</span></p>
+            </div>
+
+            <!-- Riepilogo Domande per Categoria -->
+            <div id="category-summary" class="my-8 max-w-2xl mx-auto text-left hidden">
+                <h3 class="text-lg font-semibold text-white mb-3 text-center">Domande disponibili nel dataset:</h3>
+                <div id="category-counts-container" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <!-- I conteggi verranno inseriti qui da JS -->
+                </div>
+                <p id="loading-status" class="mt-2 text-center text-sm text-gray-400 h-5"></p>
+            </div>
+
+
+            <button id="start-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-10 rounded-lg text-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-500 disabled:cursor-not-allowed disabled:transform-none" disabled>
+                Inizia la Simulazione
+            </button>
+            <!-- Sezione Storico Simulazioni -->
+            <div id="history-container" class="mt-10 text-left max-w-2xl mx-auto hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-white">Storico Simulazioni</h2>
+                    <button id="clear-history-btn" class="text-sm text-red-400 hover:text-red-500">Svuota storico</button>
+                </div>
+                <div id="history-list" class="space-y-2 max-h-48 overflow-y-auto pr-2 bg-gray-900 p-4 rounded-lg">
+                    <!-- Lo storico verrà iniettato qui -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Schermata Quiz -->
+        <div id="quiz-screen" class="hidden bg-gray-800 p-6 md:p-8 rounded-xl shadow-2xl">
+            <!-- Header del Quiz -->
+            <div class="flex justify-between items-center border-b border-gray-700 pb-4 mb-6">
+                <div>
+                    <h2 class="text-lg md:text-xl font-bold text-white">Domanda <span id="question-number"></span> di 50</h2>
+                    <div class="flex items-center text-xs text-gray-400 mt-1" id="question-id-container">
+                        <span id="question-id-text"></span>
+                        <button id="copy-id-btn" class="ml-2 text-gray-400 hover:text-white" title="Copia ID">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        </button>
+                        <span id="copy-feedback" class="ml-2 text-green-400 text-xs hidden">Copiato!</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="bg-gray-700 text-white text-xl md:text-2xl font-mono p-2 px-4 rounded-lg shadow-inner">
+                        <span id="timer">100:00</span>
+                    </div>
+                    <button id="early-finish-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition" title="Consegna in anticipo">Consegna</button>
+                </div>
+            </div>
+
+            <!-- Contenuto della Domanda -->
+            <div id="question-container" class="mb-6">
+                 <p id="category-name" class="text-sm text-blue-400 mb-2"></p>
+                <p id="question-text" class="text-xl md:text-2xl font-medium leading-relaxed mb-6"></p>
+                <div id="answers-container" class="space-y-3">
+                    <!-- Le risposte verranno iniettate qui da JS -->
+                </div>
+            </div>
+
+            <!-- Navigazione -->
+            <div class="flex justify-between items-center mt-8 pt-4 border-t border-gray-700">
+                <button id="prev-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition">Indietro</button>
+                <button id="next-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition">Avanti</button>
+                <button id="finish-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition">Termina Prova</button>
+            </div>
+
+            <!-- Palette di Navigazione Domande -->
+            <div class="my-6 pt-4 border-t border-gray-700">
+                <h3 class="text-sm font-semibold text-gray-400 mb-3">Navigazione Rapida</h3>
+                <div id="question-palette" class="flex flex-wrap gap-2 bg-gray-900/50 p-3 rounded-lg max-h-36 overflow-y-auto">
+                    <!-- I bottoni verranno generati qui da JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Schermata Risultati -->
+        <div id="results-screen" class="hidden bg-gray-800 p-6 md:p-8 rounded-xl shadow-2xl">
+            <h2 class="text-3xl font-bold text-center mb-2">Simulazione Terminata</h2>
+            <div id="score-container" class="text-center mb-6">
+                 <p id="result-message" class="text-2xl font-semibold mb-2"></p>
+                 <p class="text-6xl font-bold mb-4"><span id="final-score"></span><span class="text-3xl text-gray-400">/100</span></p>
+                 <p id="summary-text" class="text-lg text-gray-300"></p>
+            </div>
+            
+            <div class="text-center mb-8">
+                 <button id="restart-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105">
+                    Riprova
+                </button>
+            </div>
+
+            <div id="results-details" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                <!-- Dettagli risposte iniettati qui -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modale di Conferma -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm text-center">
+            <h3 class="text-xl font-bold text-white mb-4">Conferma Consegna</h3>
+            <p class="text-gray-300 mb-6">Sei sicuro di voler terminare e consegnare la prova?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancel-finish-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg">Annulla</button>
+                <button id="confirm-finish-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Conferma</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATABASE DELLE DOMANDE ---
+        let quizData = null;
+
+        // --- VARIABILI DI STATO ---
+        let currentQuestionIndex = 0;
+        let userAnswers = [];
+        let timerInterval;
+        let quizQuestions = [];
+
+        // --- ELEMENTI DEL DOM ---
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        
+        const startBtn = document.getElementById('start-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const finishBtn = document.getElementById('finish-btn');
+        const earlyFinishBtn = document.getElementById('early-finish-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const questionNumberEl = document.getElementById('question-number');
+        const categoryNameEl = document.getElementById('category-name');
+        const questionTextEl = document.getElementById('question-text');
+        const answersContainerEl = document.getElementById('answers-container');
+        const timerEl = document.getElementById('timer');
+        const questionIdTextEl = document.getElementById('question-id-text');
+        const copyIdBtn = document.getElementById('copy-id-btn');
+        const copyFeedbackEl = document.getElementById('copy-feedback');
+        
+        const finalScoreEl = document.getElementById('final-score');
+        const resultMessageEl = document.getElementById('result-message');
+        const summaryTextEl = document.getElementById('summary-text');
+        const resultsDetailsEl = document.getElementById('results-details');
+
+        const historyContainer = document.getElementById('history-container');
+        const historyList = document.getElementById('history-list');
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+        
+        const questionPaletteEl = document.getElementById('question-palette');
+
+        const confirmModal = document.getElementById('confirm-modal');
+        const cancelFinishBtn = document.getElementById('cancel-finish-btn');
+        const confirmFinishBtn = document.getElementById('confirm-finish-btn');
+        
+        // --- FUNZIONI ---
+
+        async function loadQuizData() {
+            const loadingStatusEl = document.getElementById('loading-status');
+            try {
+                loadingStatusEl.textContent = 'Caricamento domande...';
+                const response = await fetch('data.json');
+                if (!response.ok) {
+                    throw new Error(`File non trovato o errore di rete (status: ${response.status})`);
+                }
+                const data = await response.json();
+
+                // Validazione base del file JSON
+                if (data && Array.isArray(data.questions) && Array.isArray(data.categories)) {
+                    quizData = data;
+                    loadingStatusEl.textContent = 'Dataset caricato con successo.';
+                    loadingStatusEl.classList.remove('text-red-400');
+                    loadingStatusEl.classList.add('text-green-400');
+                    startBtn.disabled = false;
+                    displayCategoryCounts();
+                } else {
+                    throw new Error("Il file JSON non ha la struttura corretta.");
+                }
+
+            } catch (error) {
+                console.error('Errore nel caricamento del file JSON:', error);
+                loadingStatusEl.textContent = `Errore: Impossibile caricare il file 'data.json'. ${error.message}`;
+                loadingStatusEl.classList.add('text-red-400');
+                document.getElementById('category-summary').classList.remove('hidden');
+                startBtn.disabled = true;
+            }
+        }
+
+        function displayCategoryCounts() {
+            const container = document.getElementById('category-counts-container');
+            const summaryContainer = document.getElementById('category-summary');
+            container.innerHTML = '';
+            
+            // Forzo le nuove categorie come da richiesta
+            const newCategories = [
+                { "id": "SS_PP", "name": "Psicopedagogico (inclusa Inclusione Scolastica)" },
+                { "id": "SS_DI", "name": "Metodologico-Didattico" },
+                { "id": "SS_IN", "name": "Lingua Inglese (livello B2)" },
+                { "id": "SS_TD", "name": "Competenze Digitali e Tecnologie Didattiche" },
+                { "id": "SS_PE", "name": "Pedagogico" }
+            ];
+            quizData.categories = newCategories;
+
+            quizData.categories.forEach(category => {
+                const count = quizData.questions.filter(q => q.categoryId === category.id).length;
+                const div = document.createElement('div');
+                div.className = 'bg-gray-700/50 p-3 rounded-md flex justify-between items-center';
+                div.innerHTML = `
+                    <span class="text-gray-300">${category.name}</span>
+                    <span class="font-bold text-blue-400 bg-gray-900 px-2 py-1 rounded">${count}</span>
+                `;
+                container.appendChild(div);
+            });
+            const divTotal = document.createElement('div');
+                divTotal.className = 'bg-gray-700/50 p-3 rounded-md flex justify-between items-center';
+                divTotal.innerHTML = `
+                    <span class="text-gray-300">Totale domande disponibili</span>
+                    <span class="font-bold text-blue-400 bg-gray-900 px-2 py-1 rounded">${quizData.questions.total}</span>
+                `;
+                container.appendChild(divTotal);
+            summaryContainer.classList.remove('hidden');
+        }
+
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function selectQuizQuestions() {
+            const pedagogicalQuestions = quizData.questions.filter(q => ["SS_PP", "SS_DI", "SS_PE"].includes(q.categoryId));
+            const englishQuestions = quizData.questions.filter(q => q.categoryId === "SS_IN");
+            const digitalQuestions = quizData.questions.filter(q => q.categoryId === "SS_TD");
+
+            const selectedPedagogical = shuffleArray(pedagogicalQuestions).slice(0, 40);
+            const selectedEnglish = shuffleArray(englishQuestions).slice(0, 5);
+            const selectedDigital = shuffleArray(digitalQuestions).slice(0, 5);
+
+            quizQuestions = shuffleArray([...selectedPedagogical, ...selectedEnglish, ...selectedDigital]);
+        }
+
+        function startQuiz() {
+            if (!quizData) {
+                alert("Dati delle domande non caricati. Assicurati che il file 'data.json' sia presente.");
+                return;
+            }
+
+            startScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+
+            selectQuizQuestions();
+            currentQuestionIndex = 0;
+            userAnswers = new Array(quizQuestions.length).fill(null);
+            
+            renderQuestionPalette();
+            displayQuestion(currentQuestionIndex);
+            startTimer();
+        }
+
+        function displayQuestion(index) {
+            if(index < 0 || index >= quizQuestions.length) return;
+
+            const question = quizQuestions[index];
+            const category = quizData.categories.find(c => c.id === question.categoryId);
+            
+            questionNumberEl.textContent = index + 1;
+            categoryNameEl.textContent = category ? category.name : 'Categoria Sconosciuta';
+            questionTextEl.textContent = question.text;
+            questionIdTextEl.textContent = `ID: ${question.id}`;
+            answersContainerEl.innerHTML = '';
+
+            question.answers.forEach(answer => {
+                const answerId = `q${index}_${answer.option}`;
+                const isChecked = userAnswers[index] === answer.option;
+                
+                const answerDiv = document.createElement('div');
+                answerDiv.classList.add('quiz-option');
+                answerDiv.innerHTML = `
+                    <input type="radio" id="${answerId}" name="question${index}" value="${answer.option}" class="hidden" ${isChecked ? 'checked' : ''}>
+                    <label for="${answerId}" class="block w-full p-4 rounded-lg border-2 border-gray-600 cursor-pointer transition duration-200">
+                        <span class="font-bold mr-3">${answer.option.toUpperCase()}.</span>
+                        <span>${answer.text}</span>
+                    </label>
+                `;
+                answersContainerEl.appendChild(answerDiv);
+            });
+            
+            answersContainerEl.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    userAnswers[index] = e.target.value;
+                    updatePalette();
+                });
+            });
+
+            updatePalette();
+            updateNavigationButtons();
+        }
+        
+        function renderQuestionPalette() {
+            questionPaletteEl.innerHTML = '';
+            quizQuestions.forEach((_, index) => {
+                const button = document.createElement('button');
+                button.textContent = index + 1;
+                button.dataset.index = index;
+                button.className = 'w-10 h-10 flex-shrink-0 flex items-center justify-center rounded font-bold transition text-white text-xs';
+                questionPaletteEl.appendChild(button);
+            });
+        }
+        
+        function updatePalette() {
+            const buttons = questionPaletteEl.querySelectorAll('button');
+            buttons.forEach((button, index) => {
+                // Reset styles
+                button.classList.remove('bg-blue-600', 'ring-2', 'ring-blue-400', 'bg-green-700', 'bg-gray-600', 'hover:bg-gray-500', 'hover:bg-green-600');
+                
+                if (userAnswers[index] !== null) {
+                    button.classList.add('bg-green-700', 'hover:bg-green-600'); // Risposta data
+                } else {
+                    button.classList.add('bg-gray-600', 'hover:bg-gray-500'); // Non risposta
+                }
+
+                if (index === currentQuestionIndex) {
+                    button.classList.add('ring-2', 'ring-blue-400'); // Domanda corrente
+                    // Sovrascrive il colore per evidenziare
+                    if (button.classList.contains('bg-green-700')) button.classList.remove('bg-green-700');
+                    if (button.classList.contains('bg-gray-600')) button.classList.remove('bg-gray-600');
+                    button.classList.add('bg-blue-600');
+                }
+            });
+        }
+
+
+        function updateNavigationButtons() {
+            prevBtn.disabled = currentQuestionIndex === 0;
+            prevBtn.classList.toggle('opacity-50', prevBtn.disabled);
+            prevBtn.classList.toggle('cursor-not-allowed', prevBtn.disabled);
+
+            if (currentQuestionIndex === quizQuestions.length - 1) {
+                nextBtn.classList.add('hidden');
+                finishBtn.classList.remove('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+                finishBtn.classList.add('hidden');
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < quizQuestions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion(currentQuestionIndex);
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion(currentQuestionIndex);
+            }
+        }
+        
+        function showConfirmModal() {
+            confirmModal.classList.remove('hidden');
+        }
+
+        function hideConfirmModal() {
+            confirmModal.classList.add('hidden');
+        }
+
+        function finishQuiz() {
+            hideConfirmModal();
+            clearInterval(timerInterval);
+            calculateAndShowResults();
+        }
+
+        function calculateAndShowResults() {
+            let correctAnswers = 0;
+            quizQuestions.forEach((q, index) => {
+                if (userAnswers[index] && userAnswers[index].toLowerCase() === q.correctAnswer.toLowerCase()) {
+                    correctAnswers++;
+                }
+            });
+
+            const score = Math.round((correctAnswers / quizQuestions.length) * 100);
+            
+            finalScoreEl.textContent = score;
+            summaryTextEl.textContent = `Hai risposto correttamente a ${correctAnswers} domande su ${quizQuestions.length}.`;
+
+            if (score >= 70) {
+                resultMessageEl.textContent = "Congratulazioni! Prova Superata!";
+                resultMessageEl.className = "text-2xl font-semibold mb-2 text-green-400";
+                finalScoreEl.parentElement.className = `text-6xl font-bold mb-4 text-green-400`;
+            } else {
+                resultMessageEl.textContent = "Prova non Superata";
+                resultMessageEl.className = "text-2xl font-semibold mb-2 text-red-400";
+                finalScoreEl.parentElement.className = `text-6xl font-bold mb-4 text-red-400`;
+            }
+
+            saveResultToHistory(score, correctAnswers, quizQuestions.length);
+            displayResultsDetails();
+
+            quizScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+        }
+        
+        function saveResultToHistory(score, correct, total) {
+            const history = JSON.parse(localStorage.getItem('quizHistory')) || [];
+            const newResult = {
+                date: new Date().toISOString(),
+                score,
+                correct,
+                total
+            };
+            history.push(newResult);
+            localStorage.setItem('quizHistory', JSON.stringify(history));
+        }
+
+        function displayHistory() {
+            const history = JSON.parse(localStorage.getItem('quizHistory')) || [];
+            if(history.length === 0) {
+                historyContainer.classList.add('hidden');
+                return;
+            }
+            
+            historyContainer.classList.remove('hidden');
+            historyList.innerHTML = '';
+
+            history.slice().reverse().forEach(result => {
+                const date = new Date(result.date);
+                const formattedDate = `${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}`;
+                const resultClass = result.score >= 70 ? 'text-green-400' : 'text-red-400';
+
+                const historyItem = document.createElement('div');
+                historyItem.className = 'bg-gray-800 p-2 rounded text-sm';
+                historyItem.innerHTML = `
+                    <span>${formattedDate} - </span>
+                    <span class="font-bold ${resultClass}">Punteggio: ${result.score}/100</span>
+                    <span class="text-gray-400">(${result.correct}/${result.total} corrette)</span>
+                `;
+                historyList.appendChild(historyItem);
+            });
+        }
+        
+        function clearHistory() {
+            if(confirm("Sei sicuro di voler cancellare tutto lo storico delle simulazioni?")) {
+                localStorage.removeItem('quizHistory');
+                displayHistory();
+            }
+        }
+
+        function displayResultsDetails() {
+            resultsDetailsEl.innerHTML = '';
+            quizQuestions.forEach((q, index) => {
+                const userAnswer = userAnswers[index];
+                const isCorrect = userAnswer && userAnswer.toLowerCase() === q.correctAnswer.toLowerCase();
+                const correctAnswerText = q.answers.find(a => a.option.toLowerCase() === q.correctAnswer.toLowerCase()).text;
+                let userAnswerText = "Nessuna risposta";
+                if(userAnswer) {
+                    userAnswerText = q.answers.find(a => a.option.toLowerCase() === userAnswer.toLowerCase())?.text || "Risposta non valida";
+                }
+
+                const resultClass = isCorrect ? 'border-green-500' : 'border-red-500';
+                const icon = isCorrect 
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>` 
+                    : `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
+
+                const detailDiv = document.createElement('div');
+                detailDiv.className = `bg-gray-700 p-4 rounded-lg border-l-4 ${resultClass}`;
+                detailDiv.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <p class="font-semibold mb-2 flex-1 pr-4">${index + 1}. ${q.text}</p>
+                        ${icon}
+                    </div>
+                    <p class="text-sm ${isCorrect ? 'text-gray-300' : 'text-red-400'}">La tua risposta: ${userAnswer ? `${userAnswer.toUpperCase()}) ${userAnswerText}` : 'Nessuna'}</p>
+                    ${!isCorrect ? `<p class="text-sm text-green-400">Risposta corretta: ${q.correctAnswer.toUpperCase()}) ${correctAnswerText}</p>` : ''}
+                `;
+                resultsDetailsEl.appendChild(detailDiv);
+            });
+        }
+        
+        function startTimer() {
+            let timeRemaining = 100 * 60;
+            timerInterval = setInterval(() => {
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    finishQuiz();
+                    return;
+                }
+                timeRemaining--;
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+                timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        function resetApp() {
+             clearInterval(timerInterval);
+             quizScreen.classList.add('hidden');
+             resultsScreen.classList.add('hidden');
+             startScreen.classList.remove('hidden');
+             startBtn.disabled = true;
+             loadQuizData();
+             displayHistory();
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', startQuiz);
+        nextBtn.addEventListener('click', nextQuestion);
+        prevBtn.addEventListener('click', prevQuestion);
+        finishBtn.addEventListener('click', showConfirmModal);
+        earlyFinishBtn.addEventListener('click', showConfirmModal);
+        restartBtn.addEventListener('click', resetApp);
+        
+        cancelFinishBtn.addEventListener('click', hideConfirmModal);
+        confirmFinishBtn.addEventListener('click', finishQuiz);
+        
+        clearHistoryBtn.addEventListener('click', clearHistory);
+        
+        questionPaletteEl.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' && e.target.dataset.index) {
+                const index = parseInt(e.target.dataset.index, 10);
+                if (!isNaN(index)) {
+                    currentQuestionIndex = index;
+                    displayQuestion(currentQuestionIndex);
+                }
+            }
+        });
+        
+        copyIdBtn.addEventListener('click', () => {
+            const idToCopy = quizQuestions[currentQuestionIndex].id;
+            const tempInput = document.createElement('textarea');
+            tempInput.value = idToCopy;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            copyFeedbackEl.classList.remove('hidden');
+            setTimeout(() => {
+                copyFeedbackEl.classList.add('hidden');
+            }, 2000);
+        });
+        
+        // --- INIZIALIZZAZIONE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            finishBtn.classList.add('hidden');
+            displayHistory();
+            loadQuizData();
+        });
+
+    </script>
+</body>
+</html>
